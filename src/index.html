@@ -1,32 +1,3758 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语单词带读工具（增强版）</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa, #e4efe9);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        /* 右上角QQ联系方式 */
+        .qq-contact {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            font-size: 0.9rem;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        
+        .qq-contact:hover {
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .qq-contact i {
+            color: #4a90e2;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #4a90e2, #5cb85c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+        
+        /* 标签页样式 */
+        .tabs-container {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            white-space: nowrap;
+            min-width: 140px;
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .tab-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+        
+        .tab-btn:hover::before {
+            left: 100%;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(74, 144, 226, 0.1);
+            color: #4a90e2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4a90e2, #3a7bc8);
+            color: white;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3), 
+                        inset 0 1px 0 rgba(255,255,255,0.3),
+                        0 2px 5px rgba(0,0,0,0.1);
+            transform: translateY(0);
+        }
+        
+        .tab-btn.active:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(74, 144, 226, 0.4), 
+                        inset 0 1px 0 rgba(255,255,255,0.3),
+                        0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 单词预览区域样式 */
+        .preview-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            margin-bottom: 20px;
+        }
+        
+        .preview-pane {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f1f3f6;
+            border-radius: 12px;
+            margin-top: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #4a90e2 #f1f3f6;
+        }
+        
+        .preview-pane::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .preview-pane::-webkit-scrollbar-track {
+            background: #f1f3f6;
+            border-radius: 10px;
+        }
+        
+        .preview-pane::-webkit-scrollbar-thumb {
+            background: #4a90e2;
+            border-radius: 10px;
+        }
+        
+        .word-chip {
+            padding: 8px 16px;
+            background: #e8f4f8;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid transparent;
+            position: relative;
+        }
+        
+        .word-chip.favorite::after {
+            content: "★";
+            color: #5cb85c;
+            font-size: 0.8rem;
+        }
+        
+        .word-chip.group-indicator {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            margin-left: 5px;
+            border-radius: 4px;
+            background-color: rgba(74, 144, 226, 0.2);
+            color: #3a7bc8;
+        }
+        
+        .word-chip:hover {
+            background: #d0eef7;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+        }
+        
+        .word-chip.active {
+            background: #4a90e2;
+            color: white;
+            box-shadow: 0 3px 6px rgba(74, 144, 226, 0.2);
+        }
+        
+        /* 删除按钮样式 */
+        .delete-word-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .word-chip:hover .delete-word-btn {
+            display: flex;
+        }
+        
+        .delete-word-btn:hover {
+            background: #c9302c;
+            transform: scale(1.1);
+        }
+        
+        /* 大屏显示区域 - 占满网页100%高度 */
+        .display-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* 占满整个视口高度 */
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9f1f7);
+            color: #2c3e50;
+            border-radius: 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        
+        .display-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.02);
+            z-index: 0;
+        }
+        
+        .display-area::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234a90e2' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            z-index: 0;
+        }
+        
+        .word {
+            font-size: 7rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
+            z-index: 1;
+            line-height: 1.1;
+            transform: translateY(0);
+            transition: transform 0.3s ease-out;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 10px;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .display-area:hover .word {
+            transform: translateY(-5px);
+        }
+        
+        .phonetic {
+            font-size: 3.5rem;
+            color: #555;
+            margin-bottom: 15px;
+            z-index: 1;
+            font-weight: 500;
+            font-style: italic;
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 8px;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chinese {
+            font-size: 2.5rem;
+            color: #5cb85c;
+            max-width: 90%;
+            z-index: 1;
+            margin-top: 15px;
+            font-weight: 600;
+            line-height: 1.4;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.03);
+            padding: 10px 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .example-container {
+            max-width: 90%;
+            z-index: 1;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 30%; /* 给例句容器分配30%的高度 */
+            overflow-y: auto;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            box-sizing: border-box;
+        }
+        
+        .example {
+            font-size: 2rem;
+            color: #666;
+            width: 100%;
+            line-height: 1.5;
+            font-style: italic;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            transition: font-size 0.3s ease;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .progress-bar {
+            width: 80%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 20px;
+            z-index: 1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05) inset;
+        }
+        
+        .progress {
+            height: 100%;
+            background: #4a90e2;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        /* 播放控制栏 */
+        .playback-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            margin-top: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.02);
+        }
+        
+        .control-group h3 {
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #e0e0e0;
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4a90e2;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+        }
+        
+        input[type="number"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+            transition: border 0.3s;
+        }
+        
+        input[type="number"]:focus {
+            border-color: #4a90e2;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        input[type="text"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+            transition: border 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #4a90e2;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 3px;
+        }
+        
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+        
+        .value-display {
+            background: #2c3e50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: 600;
+            display: inline-block;
+            text-align: center;
+            min-width: 80px;
+        }
+        
+        .btn-large {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        
+        .btn-play {
+            background: #5cb85c;
+        }
+        
+        .btn-play:hover {
+            background: #4aa44a;
+            box-shadow: 0 4px 15px rgba(92, 184, 92, 0.2);
+        }
+        
+        .btn-pause {
+            background: #f0ad4e;
+        }
+        
+        .btn-pause:hover {
+            background: #e09638;
+            box-shadow: 0 4px 15px rgba(240, 173, 78, 0.2);
+        }
+        
+        .btn-next-prev {
+            background: #4a90e2;
+        }
+        
+        .btn-next-prev:hover {
+            background: #3a7bc8;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2);
+        }
+        
+        .btn-fullscreen {
+            background: #9b59b6;
+        }
+        
+        .btn-fullscreen:hover {
+            background: #8e44ad;
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.2);
+        }
+        
+        .api-config {
+            margin-top: 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #4a90e2;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+        
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #e8f4fc;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #5cb85c;
+        }
+        
+        .status-indicator.error {
+            background: #d9534f;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #4a90e2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        .api-config h4 {
+            color: #3a7bc8;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .api-config input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin: 5px 0;
+            width: 100%;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .api-config input:focus {
+            border-color: #4a90e2;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        .api-config .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .api-config label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .api-config p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-top: 10px;
+        }
+        
+        .api-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-test {
+            background: #9b59b6;
+        }
+        
+        .btn-test:hover {
+            background: #8e44ad;
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.2);
+        }
+        
+        .btn-save {
+            background: #5cb85c;
+        }
+        
+        .btn-save:hover {
+            background: #4aa44a;
+            box-shadow: 0 4px 15px rgba(92, 184, 92, 0.2);
+        }
+        
+        .btn-clear {
+            background: #f0ad4e;
+        }
+        
+        .btn-clear:hover {
+            background: #e09638;
+            box-shadow: 0 4px 15px rgba(240, 173, 78, 0.2);
+        }
+        
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.success {
+            background: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+            display: block;
+        }
+        
+        .message.error {
+            background: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+            display: block;
+        }
+        
+        .guide {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4fc;
+            border-radius: 8px;
+            border-left: 4px solid #4a90e2;
+        }
+        
+        .guide h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .guide ol {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .guide li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .guide a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+        
+        .guide a:hover {
+            text-decoration: underline;
+        }
+        
+        .import-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+        
+        .manual-add-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            margin-top: 15px;
+        }
+        
+        .manual-add-section h2 {
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .word-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .word-input {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .file-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .file-input label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: #4a90e2;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .file-input label:hover {
+            background: #3a7bc8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        
+        button {
+            padding: 12px 20px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+        .debug-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f1f3f6;
+            border-radius: 8px;
+            border-left: 4px solid #95a5a6;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .debug-info h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .debug-log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 分组管理样式 */
+        .group-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+        
+        .group-management {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .group-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .group-item {
+            padding: 8px 16px;
+            background: #e8f4f8;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .group-item.active {
+            background: #4a90e2;
+            color: white;
+        }
+        
+        .group-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+        }
+        
+        .group-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .current-word-group {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f1f3f6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .group-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+        
+        .delete-group {
+            color: #d9534f;
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .delete-group:hover {
+            color: #c9302c;
+        }
+        
+        /* 收藏按钮样式 */
+        .favorite-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #5cb85c;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 2;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .favorite-badge:hover {
+            transform: scale(1.1);
+            background: #4aa44a;
+        }
+        
+        .favorite-badge.active {
+            background: #5cb85c;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(92, 184, 92, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(92, 184, 92, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(92, 184, 92, 0); }
+        }
+        
+        .favorite-badge i {
+            font-size: 1.2rem;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .filter-btn.active {
+            background: #3a7bc8;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        
+        .export-btn {
+            background: #5cb85c;
+        }
+        
+        .export-btn:hover {
+            background: #4aa44a;
+        }
+        
+        .clear-btn {
+            background: #f0ad4e;
+        }
+        
+        .clear-btn:hover {
+            background: #e09638;
+        }
+        
+        /* 百度API说明样式 */
+        .api-guide {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4a90e2;
+        }
+        
+        .api-guide h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .api-guide ol {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .api-guide li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .api-guide a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+        
+        .api-guide a:hover {
+            text-decoration: underline;
+        }
+        
+        /* 导入分组选择样式 */
+        .import-group-select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+        
+        .preview-filter {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .preview-filter select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+        
+        /* 全屏样式 - 修复版 */
+        body.fullscreen {
+            padding: 0;
+            overflow: hidden;
+            background: #fff;
+        }
+        
+        body.fullscreen .container {
+            margin: 0;
+            border-radius: 0;
+            max-width: none;
+            height: 100vh;
+            overflow: hidden;
+            padding: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+        
+        body.fullscreen .qq-contact,
+        body.fullscreen header,
+        body.fullscreen .tabs-container,
+        body.fullscreen .preview-section,
+        body.fullscreen .playback-controls:not(.fullscreen-controls),
+        body.fullscreen .controls {
+            display: none;
+        }
+        
+        /* 修复全屏播放标签页显示问题 */
+        body.fullscreen #playback.tab-content.active {
+            display: flex !important;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+        
+        body.fullscreen .display-area {
+            height: 100vh;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9f1f7);
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 增强全屏控制栏样式 */
+        .fullscreen-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        body.fullscreen .fullscreen-controls {
+            display: flex;
+        }
+        
+        .fullscreen-controls:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: translateX(-50%) translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+        
+        .fullscreen-controls button {
+            margin: 0;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .fullscreen-controls button i {
+            font-size: 1.2rem;
+        }
+        
+        /* 全屏时隐藏不需要的元素 */
+        body.fullscreen .tab-content:not(#playback) {
+            display: none !important;
+        }
+        
+        /* 确保大屏内容在全屏时正确显示 */
+        body.fullscreen .word,
+        body.fullscreen .phonetic,
+        body.fullscreen .chinese,
+        body.fullscreen .example-container {
+            z-index: 2;
+            position: relative;
+        }
+        
+        /* 全屏时调整字体大小 */
+        body.fullscreen .word {
+            font-size: 8rem;
+        }
+        
+        body.fullscreen .phonetic {
+            font-size: 4rem;
+        }
+        
+        body.fullscreen .chinese {
+            font-size: 3rem;
+        }
+        
+        body.fullscreen .example {
+            font-size: 2.2rem;
+        }
+        
+        /* 添加全屏退出按钮 */
+        .exit-fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        body.fullscreen .exit-fullscreen-btn {
+            display: flex;
+        }
+        
+        .exit-fullscreen-btn:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: scale(1.1);
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 1024px) {
+            .word {
+                font-size: 5rem;
+            }
+            
+            .phonetic {
+                font-size: 2.5rem;
+            }
+            
+            .chinese {
+                font-size: 1.8rem;
+            }
+            
+            .example {
+                font-size: 1.6rem;
+            }
+            
+            body.fullscreen .word {
+                font-size: 6rem;
+            }
+            
+            body.fullscreen .phonetic {
+                font-size: 3rem;
+            }
+            
+            body.fullscreen .chinese {
+                font-size: 2.2rem;
+            }
+            
+            body.fullscreen .example {
+                font-size: 1.8rem;
+            }
+            
+            .fullscreen-controls {
+                bottom: 20px;
+                padding: 12px 20px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .word {
+                font-size: 3.5rem;
+            }
+            
+            .phonetic {
+                font-size: 2rem;
+            }
+            
+            .chinese {
+                font-size: 1.5rem;
+            }
+            
+            .example {
+                font-size: 1.3rem;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .playback-controls {
+                flex-wrap: wrap;
+            }
+            
+            .api-actions {
+                flex-direction: column;
+            }
+            
+            .btn-large {
+                padding: 12px 20px;
+                font-size: 1rem;
+            }
+            
+            .tab-btn {
+                min-width: 120px;
+                padding: 12px 15px;
+                font-size: 1rem;
+            }
+            
+            .tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .display-area {
+                padding: 30px 15px;
+            }
+            
+            .example-container {
+                height: 35%;
+            }
+            
+            .qq-contact {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 15px;
+                align-self: flex-end;
+            }
+            
+            .file-input {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .import-group-select {
+                min-width: 100%;
+            }
+            
+            body.fullscreen .word {
+                font-size: 4rem;
+            }
+            
+            body.fullscreen .phonetic {
+                font-size: 2.2rem;
+            }
+            
+            body.fullscreen .chinese {
+                font-size: 1.8rem;
+            }
+            
+            body.fullscreen .example {
+                font-size: 1.4rem;
+            }
+            
+            .fullscreen-controls {
+                bottom: 15px;
+                padding: 10px 15px;
+                border-radius: 40px;
+            }
+            
+            .fullscreen-controls button {
+                padding: 10px 15px;
+                min-width: 45px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .word {
+                font-size: 2.5rem;
+            }
+            
+            .phonetic {
+                font-size: 1.5rem;
+            }
+            
+            .chinese {
+                font-size: 1.2rem;
+            }
+            
+            .example {
+                font-size: 1rem;
+            }
+            
+            .display-area {
+                padding: 20px 10px;
+            }
+            
+            body.fullscreen .word {
+                font-size: 3rem;
+            }
+            
+            body.fullscreen .phonetic {
+                font-size: 1.8rem;
+            }
+            
+            body.fullscreen .chinese {
+                font-size: 1.4rem;
+            }
+            
+            body.fullscreen .example {
+                font-size: 1.1rem;
+            }
+            
+            .fullscreen-controls {
+                bottom: 10px;
+                padding: 8px 12px;
+                border-radius: 30px;
+            }
+            
+            .fullscreen-controls button {
+                padding: 8px 12px;
+                min-width: 40px;
+            }
+            
+            .fullscreen-controls button i {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 右上角QQ联系方式 -->
+    <div class="qq-contact">
+        <i class="fab fa-qq"></i>
+        <span>联系作者QQ：410924011</span>
+    </div>
+    
+    <header>
+        <h1>英语单词带读工具（增强版）</h1>
+        <p class="subtitle">支持单词收藏、分组、多语言发音和离线缓存的智能学习助手</p>
+    </header>
+    
+    <div class="container">
+        <!-- 标签页导航 -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="api-config">
+                    <i class="fas fa-key"></i> API配置
+                </button>
+                <button class="tab-btn" data-tab="group-management">
+                    <i class="fas fa-tags"></i> 分组管理
+                </button>
+                <button class="tab-btn" data-tab="word-import">
+                    <i class="fas fa-file-import"></i> 单词导入
+                </button>
+                <button class="tab-btn" data-tab="playback">
+                    <i class="fas fa-play-circle"></i> 播放控制
+                </button>
+                <button class="tab-btn" data-tab="settings">
+                    <i class="fas fa-cog"></i> 设置
+                </button>
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
+            
+            <!-- API配置标签页 -->
+            <div id="api-config" class="tab-content active">
+                <section class="api-config">
+                    <h4><i class="fas fa-key"></i> 百度翻译API配置</h4>
+                    <p>请输入您的百度翻译API配置信息，用于获取单词释义：</p>
+                    
+                    <div class="input-group">
+                        <label for="appId">百度翻译APP ID</label>
+                        <input type="text" id="appId" placeholder="请输入APP ID">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="appKey">百度翻译密钥</label>
+                        <input type="password" id="appKey" placeholder="请输入密钥">
+                    </div>
+                    
+                    <div class="api-actions">
+                        <button id="testApiBtn" class="btn-test">
+                            <i class="fas fa-vial"></i> 测试API连接
+                        </button>
+                        <button id="saveApiBtn" class="btn-save">
+                            <i class="fas fa-save"></i> 保存配置
+                        </button>
+                        <button id="clearApiBtn" class="btn-clear">
+                            <i class="fas fa-trash"></i> 清除配置
+                        </button>
+                    </div>
+                    
+                    <div class="api-status">
+                        <div class="status-indicator" id="apiStatusIndicator"></div>
+                        <span id="apiStatusText">词典API: 就绪 (主服务 + 备用服务)</span>
+                    </div>
+                    
+                    <div id="apiMessage" class="message"></div>
+                </section>
+                
+                <!-- 百度API配置说明 -->
+                <section class="api-guide">
+                    <h4><i class="fas fa-info-circle"></i> 百度翻译API配置说明</h4>
+                    <p>要使用百度翻译API，您需要先申请百度翻译服务的API密钥：</p>
+                    <ol>
+                        <li>访问 <a href="https://api.fanyi.baidu.com" target="_blank">百度翻译开放平台</a></li>
+                        <li>注册/登录百度账号</li>
+                        <li>进入"管理控制台" -> "开发者信息" -> "申请成为开发者"</li>
+                        <li>创建新应用，选择"通用翻译API"服务</li>
+                        <li>获取App ID和密钥，填写到上方表单中</li>
+                    </ol>
+                    <p><strong>注意：</strong>百度翻译API有免费额度（每月200万字符），超出后需要付费。</p>
+                    <p>如果不想使用百度翻译API，系统会自动使用备用翻译服务，但翻译质量可能不如百度翻译。</p>
+                </section>
             </div>
-        </main>
-    </body>
+            
+            <!-- 分组管理标签页 -->
+            <div id="group-management" class="tab-content">
+                <section class="group-section">
+                    <h2><i class="fas fa-tags"></i> 单词分组管理</h2>
+                    
+                    <div class="group-management">
+                        <input type="text" id="newGroupName" placeholder="输入新分组名称">
+                        <input type="color" id="newGroupColor" value="#4a90e2">
+                        <button id="createGroupBtn">
+                            <i class="fas fa-plus"></i> 创建分组
+                        </button>
+                        <button id="editGroupsBtn">
+                            <i class="fas fa-edit"></i> 编辑分组
+                        </button>
+                    </div>
+                    
+                    <div class="filter-controls">
+                        <button id="allGroupsBtn" class="filter-btn active">
+                            <i class="fas fa-layer-group"></i> 所有分组
+                        </button>
+                        <span>筛选：</span>
+                        <div class="group-list" id="groupList">
+                            <!-- 分组列表将通过JS动态生成 -->
+                        </div>
+                    </div>
+                    
+                    <div class="current-word-group" id="currentWordGroup">
+                        <span><i class="fas fa-tag"></i> 当前单词分组：</span>
+                        <select id="wordGroupSelect">
+                            <option value="">-- 未分组 --</option>
+                            <!-- 分组选项将通过JS动态生成 -->
+                        </select>
+                        <button id="assignGroupBtn">
+                            <i class="fas fa-check"></i> 分配分组
+                        </button>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- 单词导入标签页 -->
+            <div id="word-import" class="tab-content">
+                <section class="import-section">
+                    <h2><i class="fas fa-file-import"></i> 导入单词列表</h2>
+                    
+                    <div class="file-input">
+                        <label for="fileInput">
+                            <i class="fas fa-file"></i> 选择TXT文件
+                            <input type="file" id="fileInput" accept=".txt" style="display: none;">
+                        </label>
+                        <select id="importGroupSelect" class="import-group-select">
+                            <option value="">-- 选择分组（可选）--</option>
+                            <!-- 分组选项将通过JS动态生成 -->
+                        </select>
+                        <button id="importBtn">
+                            <i class="fas fa-upload"></i> 导入单词
+                        </button>
+                        <button id="clearWordsBtn" class="clear-btn">
+                            <i class="fas fa-trash"></i> 清除所有单词
+                        </button>
+                    </div>
+                    
+                    <!-- 手动添加单词部分 -->
+                    <section class="manual-add-section">
+                        <h2><i class="fas fa-plus-circle"></i> 手动添加单词</h2>
+                        
+                        <div class="word-input-group">
+                            <input type="text" id="manualWordInput" class="word-input" placeholder="请输入单词">
+                            <select id="manualWordGroup">
+                                <option value="">-- 选择分组（可选）--</option>
+                                <!-- 分组选项将通过JS动态生成 -->
+                            </select>
+                            <button id="addWordBtn">
+                                <i class="fas fa-plus"></i> 添加单词
+                            </button>
+                        </div>
+                        
+                        <p style="color: #7f8c8d; font-size: 0.9rem;">
+                            <i class="fas fa-info-circle"></i> 输入单词后，系统会自动获取音标和例句
+                        </p>
+                    </section>
+                    
+                    <div class="filter-controls">
+                        <button id="allWordsBtn" class="filter-btn active">
+                            <i class="fas fa-list"></i> 所有单词
+                        </button>
+                        <button id="favoriteWordsBtn" class="filter-btn">
+                            <i class="fas fa-star"></i> 仅收藏单词
+                        </button>
+                        <button id="exportWordsBtn" class="filter-btn export-btn">
+                            <i class="fas fa-download"></i> 导出单词列表
+                        </button>
+                    </div>
+                    
+                    <!-- 单词预览 -->
+                    <div class="preview-section">
+                        <h3><i class="fas fa-list"></i> 单词预览 (悬停单词可删除)</h3>
+                        
+                        <div class="preview-filter">
+                            <span>按分组筛选：</span>
+                            <select id="previewGroupFilter">
+                                <option value="">-- 所有分组 --</option>
+                                <!-- 分组选项将通过JS动态生成 -->
+                            </select>
+                            <button id="syncToPlaybackBtn" class="filter-btn">
+                                <i class="fas fa-sync"></i> 同步到播放列表
+                            </button>
+                        </div>
+                        
+                        <div class="preview-pane" id="previewPane">
+                            <!-- 单词预览内容将通过JS动态生成 -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- 播放控制标签页 -->
+            <div id="playback" class="tab-content">
+                <!-- 单词预览 - 同步到播放控制标签页 -->
+                <div class="preview-section">
+                    <h3><i class="fas fa-list"></i> 当前播放列表</h3>
+                    <div class="preview-pane" id="previewPanePlayback">
+                        <!-- 播放列表内容将通过JS动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- 大屏显示区域 - 占满网页100%高度 -->
+                <section class="display-area" id="displayArea">
+                    <div class="favorite-badge" id="favoriteBadge">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    
+                    <div class="word" id="currentWord">Welcome</div>
+                    <div class="phonetic" id="currentPhonetic">/ˈwɛlkəm/</div>
+                    <div class="chinese" id="currentChinese">欢迎，迎接</div>
+                    <div class="example-container">
+                        <div class="example" id="currentExample">Welcome to our home! We're so glad you could join us for dinner tonight.</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress" id="progressBar"></div>
+                    </div>
+                </section>
+                
+                <!-- 播放控制栏 - 位于大屏显示的正下方 -->
+                <div class="playback-controls">
+                    <button id="prevBtn" class="btn-next-prev">
+                        <i class="fas fa-arrow-left"></i> 上一个
+                    </button>
+                    <button id="playBtn" class="btn-large btn-play">
+                        <i class="fas fa-play"></i> 开始自动播放
+                    </button>
+                    <button id="pauseBtn" class="btn-large btn-pause">
+                        <i class="fas fa-pause"></i> 暂停
+                    </button>
+                    <button id="nextBtn" class="btn-next-prev">
+                        下一个 <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button id="fullscreenBtn" class="btn-large btn-fullscreen">
+                        <i class="fas fa-expand"></i> 全屏播放
+                    </button>
+                </div>
+                
+                <!-- 全屏模式下的控制栏 -->
+                <div class="playback-controls fullscreen-controls" style="display: none;">
+                    <button id="prevBtnFull" class="btn-next-prev">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button id="playBtnFull" class="btn-play">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button id="pauseBtnFull" class="btn-pause">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button id="nextBtnFull" class="btn-next-prev">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button id="exitFullscreenBtn" class="btn-fullscreen">
+                        <i class="fas fa-compress"></i>
+                    </button>
+                </div>
+                
+                <!-- 播放控制选项 -->
+                <section class="controls">
+                    <div class="control-group">
+                        <h3><i class="fas fa-redo"></i> 重复设置</h3>
+                        <label for="repeatCount">每个单词重复次数</label>
+                        <input type="number" id="repeatCount" min="1" max="10" value="2">
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-clock"></i> 时间设置</h3>
+                        <label for="intervalTime">间隔时间 (毫秒)</label>
+                        <input type="range" id="intervalTime" min="500" max="5000" step="100" value="1500">
+                        <div class="value-display" id="intervalValue">1500 ms</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-volume-up"></i> 发音设置</h3>
+                        <label for="voiceLanguage">发音语言</label>
+                        <select id="voiceLanguage" class="language-select">
+                            <option value="en-US">英语 (美国)</option>
+                            <option value="en-GB">英语 (英国)</option>
+                            <option value="fr-FR">法语</option>
+                            <option value="de-DE">德语</option>
+                            <option value="es-ES">西班牙语</option>
+                            <option value="ja-JP">日语</option>
+                            <option value="ko-KR">韩语</option>
+                        </select>
+                        
+                        <label for="voiceSpeed">语速</label>
+                        <input type="range" id="voiceSpeed" min="0.5" max="1.5" step="0.1" value="0.9">
+                        <div class="value-display" id="voiceSpeedValue">0.9</div>
+                        
+                        <label for="voicePitch">音调</label>
+                        <input type="range" id="voicePitch" min="0.5" max="2" step="0.1" value="1">
+                        <div class="value-display" id="voicePitchValue">1.0</div>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- 设置标签页 -->
+            <div id="settings" class="tab-content">
+                <section class="controls">
+                    <!-- 颜色控制 -->
+                    <div class="control-group">
+                        <h3><i class="fas fa-palette"></i> 颜色设置</h3>
+                        <label for="wordBackgroundColor">单词背景颜色</label>
+                        <input type="color" id="wordBackgroundColor" value="#ffffff">
+                        
+                        <label for="phoneticBackgroundColor">音标背景颜色</label>
+                        <input type="color" id="phoneticBackgroundColor" value="#ffffff">
+                        
+                        <label for="chineseBackgroundColor">中文翻译背景颜色</label>
+                        <input type="color" id="chineseBackgroundColor" value="#ffffff">
+                        
+                        <label for="exampleBackgroundColor">例句背景颜色</label>
+                        <input type="color" id="exampleBackgroundColor" value="#ffffff">
+                        
+                        <label for="displayBackgroundColor">大屏背景颜色</label>
+                        <input type="color" id="displayBackgroundColor" value="#f8f9fa">
+                    </div>
+                    
+                    <!-- 字体大小控制 -->
+                    <div class="control-group">
+                        <h3><i class="fas fa-text-height"></i> 字体大小设置</h3>
+                        <label for="wordFontSize">单词字体大小</label>
+                        <input type="range" id="wordFontSize" min="2" max="10" step="0.5" value="7">
+                        <div class="value-display" id="wordFontSizeValue">7.0rem</div>
+                        
+                        <label for="phoneticFontSize">音标字体大小</label>
+                        <input type="range" id="phoneticFontSize" min="1" max="5" step="0.5" value="3.5">
+                        <div class="value-display" id="phoneticFontSizeValue">3.5rem</div>
+                        
+                        <label for="chineseFontSize">中文翻译字体大小</label>
+                        <input type="range" id="chineseFontSize" min="1" max="4" step="0.2" value="2.5">
+                        <div class="value-display" id="chineseFontSizeValue">2.5rem</div>
+                        
+                        <label for="exampleFontSize">例句字体大小</label>
+                        <input type="range" id="exampleFontSize" min="1" max="4" step="0.2" value="2">
+                        <div class="value-display" id="exampleFontSizeValue">2.0rem</div>
+                    </div>
+                    
+                    <!-- 移除大屏高度控制 -->
+                </section>
+                
+                <!-- 调试信息 -->
+                <div class="debug-info">
+                    <h4><i class="fas fa-bug"></i> 调试信息</h4>
+                    <div class="debug-log" id="debugLog">
+                        [系统] 应用已加载，等待用户操作...
+                    </div>
+                    <button id="clearLogBtn" style="margin-top: 10px; font-size: 0.8rem;">
+                        <i class="fas fa-trash"></i> 清除日志
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 分组编辑模态框 -->
+    <div class="group-modal" id="groupModal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> 编辑分组</h3>
+            <div class="modal-form">
+                <div id="editGroupList">
+                    <!-- 分组编辑列表将通过JS动态生成 -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeGroupModal">取消</button>
+                <button id="saveGroupChanges" class="btn-save">保存更改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全屏退出按钮 -->
+    <button class="exit-fullscreen-btn" id="exitFullscreenBtnTop" title="退出全屏" style="display: none;">
+        <i class="fas fa-times"></i>
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 标签页切换功能
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // 移除所有标签页的活动状态
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // 激活当前标签页
+                    btn.classList.add('active');
+                    const tabId = btn.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    addDebugLog(`切换到标签页: ${btn.textContent.trim()}`);
+                });
+            });
+            
+            // 获取DOM元素
+            const fileInput = document.getElementById('fileInput');
+            const importBtn = document.getElementById('importBtn');
+            const clearWordsBtn = document.getElementById('clearWordsBtn');
+            const previewPane = document.getElementById('previewPane');
+            const previewPanePlayback = document.getElementById('previewPanePlayback');
+            const currentWord = document.getElementById('currentWord');
+            const currentPhonetic = document.getElementById('currentPhonetic');
+            const currentExample = document.getElementById('currentExample');
+            const currentChinese = document.getElementById('currentChinese');
+            const repeatCount = document.getElementById('repeatCount');
+            const intervalTime = document.getElementById('intervalTime');
+            const intervalValue = document.getElementById('intervalValue');
+            const voiceSpeed = document.getElementById('voiceSpeed');
+            const voiceSpeedValue = document.getElementById('voiceSpeedValue');
+            const voicePitch = document.getElementById('voicePitch');
+            const voicePitchValue = document.getElementById('voicePitchValue');
+            const voiceLanguage = document.getElementById('voiceLanguage');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const playBtn = document.getElementById('playBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const progressBar = document.getElementById('progressBar');
+            const appIdInput = document.getElementById('appId');
+            const appKeyInput = document.getElementById('appKey');
+            const testApiBtn = document.getElementById('testApiBtn');
+            const saveApiBtn = document.getElementById('saveApiBtn');
+            const clearApiBtn = document.getElementById('clearApiBtn');
+            const apiMessage = document.getElementById('apiMessage');
+            const apiStatusIndicator = document.getElementById('apiStatusIndicator');
+            const apiStatusText = document.getElementById('apiStatusText');
+            const debugLog = document.getElementById('debugLog');
+            const clearLogBtn = document.getElementById('clearLogBtn');
+            const favoriteBadge = document.getElementById('favoriteBadge');
+            const allWordsBtn = document.getElementById('allWordsBtn');
+            const favoriteWordsBtn = document.getElementById('favoriteWordsBtn');
+            const exportWordsBtn = document.getElementById('exportWordsBtn');
+            
+            // 手动添加单词相关元素
+            const manualWordInput = document.getElementById('manualWordInput');
+            const addWordBtn = document.getElementById('addWordBtn');
+            
+            // 颜色和字体控制相关元素
+            const wordBackgroundColor = document.getElementById('wordBackgroundColor');
+            const phoneticBackgroundColor = document.getElementById('phoneticBackgroundColor');
+            const chineseBackgroundColor = document.getElementById('chineseBackgroundColor');
+            const exampleBackgroundColor = document.getElementById('exampleBackgroundColor');
+            const displayBackgroundColor = document.getElementById('displayBackgroundColor');
+            const wordFontSize = document.getElementById('wordFontSize');
+            const wordFontSizeValue = document.getElementById('wordFontSizeValue');
+            const phoneticFontSize = document.getElementById('phoneticFontSize');
+            const phoneticFontSizeValue = document.getElementById('phoneticFontSizeValue');
+            const chineseFontSize = document.getElementById('chineseFontSize');
+            const chineseFontSizeValue = document.getElementById('chineseFontSizeValue');
+            const exampleFontSize = document.getElementById('exampleFontSize');
+            const exampleFontSizeValue = document.getElementById('exampleFontSizeValue');
+            const displayArea = document.getElementById('displayArea');
+            
+            // 全屏功能相关元素
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+            const exitFullscreenBtnTop = document.getElementById('exitFullscreenBtnTop');
+            const prevBtnFull = document.getElementById('prevBtnFull');
+            const nextBtnFull = document.getElementById('nextBtnFull');
+            const playBtnFull = document.getElementById('playBtnFull');
+            const pauseBtnFull = document.getElementById('pauseBtnFull');
+            
+            // 分组管理相关元素
+            const newGroupName = document.getElementById('newGroupName');
+            const newGroupColor = document.getElementById('newGroupColor');
+            const createGroupBtn = document.getElementById('createGroupBtn');
+            const editGroupsBtn = document.getElementById('editGroupsBtn');
+            const groupList = document.getElementById('groupList');
+            const allGroupsBtn = document.getElementById('allGroupsBtn');
+            const wordGroupSelect = document.getElementById('wordGroupSelect');
+            const assignGroupBtn = document.getElementById('assignGroupBtn');
+            const manualWordGroup = document.getElementById('manualWordGroup');
+            const groupModal = document.getElementById('groupModal');
+            const closeGroupModal = document.getElementById('closeGroupModal');
+            const saveGroupChanges = document.getElementById('saveGroupChanges');
+            const editGroupList = document.getElementById('editGroupList');
+            
+            // 导入和预览相关元素
+            const importGroupSelect = document.getElementById('importGroupSelect');
+            const previewGroupFilter = document.getElementById('previewGroupFilter');
+            const syncToPlaybackBtn = document.getElementById('syncToPlaybackBtn');
+            
+            // 单词列表和当前索引
+            let words = [];
+            let filteredWords = [];
+            let currentIndex = 0;
+            let isPlaying = false;
+            let playInterval;
+            let speechSynth = window.speechSynthesis;
+            let showOnlyFavorites = false;
+            let currentGroupFilter = null;
+            let previewGroupFilterValue = null;
+            
+            // 分组数据
+            let groups = [];
+            
+            // 从本地缓存加载数据
+            loadCachedWords();
+            loadCachedGroups();
+            loadStyleSettings();
+            
+            // 示例单词数据
+            const sampleWords = [
+                { 
+                    word: "apple", 
+                    phonetic: "/ˈæp.əl/", 
+                    example: "I eat an apple every day to keep the doctor away.", 
+                    chinese: "苹果",
+                    favorite: false,
+                    groupId: null
+                },
+                { 
+                    word: "banana", 
+                    phonetic: "/bəˈnɑː.nə/", 
+                    example: "Monkeys love to eat bananas because they are sweet and nutritious.", 
+                    chinese: "香蕉",
+                    favorite: false,
+                    groupId: null
+                },
+                { 
+                    word: "computer", 
+                    phonetic: "/kəmˈpjuː.tər/", 
+                    example: "I use my computer for work, entertainment, and staying connected with friends and family.", 
+                    chinese: "电脑，计算机",
+                    favorite: false,
+                    groupId: null
+                }
+            ];
+            
+            // 如果没有缓存数据，使用示例单词
+            if (words.length === 0) {
+                words = sampleWords;
+                cacheWordsData();
+            }
+            
+            // 初始化分组（如果没有分组）
+            if (groups.length === 0) {
+                groups = [
+                    { id: generateId(), name: "日常词汇", color: "#4a90e2" },
+                    { id: generateId(), name: "学术词汇", color: "#5cb85c" },
+                    { id: generateId(), name: "备考词汇", color: "#f0ad4e" }
+                ];
+                cacheGroupsData();
+            }
+            
+            // 初始化界面
+            updateGroupUI();
+            filterWords();
+            updatePreviewPane();
+            displayCurrentWord();
+            
+            // 从本地存储加载API配置
+            loadApiConfig();
+            
+            // 事件监听器
+            importBtn.addEventListener('click', handleFileImport);
+            clearWordsBtn.addEventListener('click', clearAllWords);
+            clearApiBtn.addEventListener('click', clearApiConfig);
+            intervalTime.addEventListener('input', updateIntervalValue);
+            voiceSpeed.addEventListener('input', updateVoiceSpeedValue);
+            voicePitch.addEventListener('input', updateVoicePitchValue);
+            prevBtn.addEventListener('click', goToPreviousWord);
+            nextBtn.addEventListener('click', goToNextWord);
+            playBtn.addEventListener('click', startAutoPlay);
+            pauseBtn.addEventListener('click', pauseAutoPlay);
+            testApiBtn.addEventListener('click', testApiConnection);
+            saveApiBtn.addEventListener('click', saveApiConfig);
+            clearLogBtn.addEventListener('click', clearDebugLog);
+            favoriteBadge.addEventListener('click', toggleFavorite);
+            allWordsBtn.addEventListener('click', () => setFilter(false));
+            favoriteWordsBtn.addEventListener('click', () => setFilter(true));
+            exportWordsBtn.addEventListener('click', exportWordList);
+            
+            // 全屏功能事件
+            fullscreenBtn.addEventListener('click', enterFullscreen);
+            exitFullscreenBtn.addEventListener('click', exitFullscreen);
+            exitFullscreenBtnTop.addEventListener('click', exitFullscreen);
+            prevBtnFull.addEventListener('click', goToPreviousWord);
+            nextBtnFull.addEventListener('click', goToNextWord);
+            playBtnFull.addEventListener('click', startAutoPlay);
+            pauseBtnFull.addEventListener('click', pauseAutoPlay);
+            
+            // 手动添加单词事件
+            addWordBtn.addEventListener('click', addManualWord);
+            manualWordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addManualWord();
+                }
+            });
+            
+            // 颜色和字体控制事件
+            wordBackgroundColor.addEventListener('input', updateWordBackgroundColor);
+            phoneticBackgroundColor.addEventListener('input', updatePhoneticBackgroundColor);
+            chineseBackgroundColor.addEventListener('input', updateChineseBackgroundColor);
+            exampleBackgroundColor.addEventListener('input', updateExampleBackgroundColor);
+            displayBackgroundColor.addEventListener('input', updateDisplayBackgroundColor);
+            wordFontSize.addEventListener('input', updateWordFontSize);
+            phoneticFontSize.addEventListener('input', updatePhoneticFontSize);
+            chineseFontSize.addEventListener('input', updateChineseFontSize);
+            exampleFontSize.addEventListener('input', updateExampleFontSize);
+            
+            // 分组管理事件
+            createGroupBtn.addEventListener('click', createNewGroup);
+            editGroupsBtn.addEventListener('click', openGroupEditModal);
+            closeGroupModal.addEventListener('click', closeGroupEditModal);
+            saveGroupChanges.addEventListener('click', saveGroupEditChanges);
+            allGroupsBtn.addEventListener('click', () => filterByGroup(null));
+            assignGroupBtn.addEventListener('click', assignWordToGroup);
+            
+            // 导入和预览事件
+            previewGroupFilter.addEventListener('change', updatePreviewFilter);
+            syncToPlaybackBtn.addEventListener('click', syncPreviewToPlayback);
+            
+            // 窗口大小改变时调整大屏内容
+            window.addEventListener('resize', function() {
+                adjustDisplayContent();
+            });
+            
+            // 调试日志功能
+            function addDebugLog(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugLog.innerHTML += `[${timestamp}] ${message}<br>`;
+                debugLog.scrollTop = debugLog.scrollHeight;
+            }
+            
+            function clearDebugLog() {
+                debugLog.innerHTML = '[系统] 日志已清除<br>';
+            }
+            
+            // 全屏功能
+            function enterFullscreen() {
+                const element = document.documentElement;
+                
+                if (element.requestFullscreen) {
+                    element.requestFullscreen();
+                } else if (element.mozRequestFullScreen) {
+                    element.mozRequestFullScreen();
+                } else if (element.webkitRequestFullscreen) {
+                    element.webkitRequestFullscreen();
+                } else if (element.msRequestFullscreen) {
+                    element.msRequestFullscreen();
+                }
+                
+                // 添加全屏样式
+                document.body.classList.add('fullscreen');
+                
+                addDebugLog('已进入全屏模式');
+                
+                // 调整显示内容
+                setTimeout(() => {
+                    adjustDisplayContent();
+                }, 100);
+            }
+            
+            function exitFullscreen() {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                
+                // 移除全屏样式
+                document.body.classList.remove('fullscreen');
+                
+                addDebugLog('已退出全屏模式');
+                
+                // 调整显示内容
+                setTimeout(() => {
+                    adjustDisplayContent();
+                }, 100);
+            }
+            
+            // 监听全屏状态变化
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+            
+            function handleFullscreenChange() {
+                const isFullscreen = document.fullscreenElement || 
+                                    document.webkitFullscreenElement || 
+                                    document.mozFullScreenElement || 
+                                    document.msFullscreenElement;
+                
+                if (!isFullscreen) {
+                    document.body.classList.remove('fullscreen');
+                    addDebugLog('已退出全屏模式');
+                    
+                    // 调整显示内容
+                    setTimeout(() => {
+                        adjustDisplayContent();
+                    }, 100);
+                }
+            }
+            
+            // 清除API配置
+            function clearApiConfig() {
+                if (confirm('确定要清除API配置吗？')) {
+                    localStorage.removeItem('baiduAppId');
+                    localStorage.removeItem('baiduAppKey');
+                    appIdInput.value = '';
+                    appKeyInput.value = '';
+                    showApiMessage('API配置已清除', 'success');
+                    addDebugLog('已清除API配置');
+                }
+            }
+            
+            // 清除所有单词功能
+            function clearAllWords() {
+                if (words.length === 0) {
+                    alert('当前没有单词可清除');
+                    return;
+                }
+                
+                if (confirm('确定要清除所有单词吗？此操作不可恢复。')) {
+                    words = [];
+                    filteredWords = [];
+                    currentIndex = 0;
+                    cacheWordsData();
+                    filterWords();
+                    updatePreviewPane();
+                    currentWord.textContent = '无单词';
+                    currentPhonetic.textContent = '';
+                    currentExample.textContent = '';
+                    currentChinese.textContent = '';
+                    favoriteBadge.classList.remove('active');
+                    
+                    addDebugLog('已清除所有单词');
+                    alert('所有单词已清除');
+                }
+            }
+            
+            // 删除单个单词
+            function deleteWord(wordToDelete) {
+                if (confirm(`确定要删除单词 "${wordToDelete}" 吗？`)) {
+                    // 从单词列表中移除
+                    const wordIndex = words.findIndex(w => w.word === wordToDelete);
+                    if (wordIndex !== -1) {
+                        words.splice(wordIndex, 1);
+                    }
+                    
+                    // 更新过滤后的单词列表
+                    filterWords();
+                    
+                    // 如果删除的是当前显示的单词，切换到下一个单词
+                    if (filteredWords.length > 0) {
+                        if (currentIndex >= filteredWords.length) {
+                            currentIndex = filteredWords.length - 1;
+                        }
+                        displayCurrentWord();
+                    } else {
+                        // 如果没有单词了，清空显示
+                        currentWord.textContent = '无单词';
+                        currentPhonetic.textContent = '';
+                        currentExample.textContent = '';
+                        currentChinese.textContent = '';
+                        favoriteBadge.classList.remove('active');
+                    }
+                    
+                    // 更新缓存和预览
+                    cacheWordsData();
+                    updatePreviewPane();
+                    
+                    addDebugLog(`已删除单词: ${wordToDelete}`);
+                }
+            }
+            
+            // 手动添加单词
+            function addManualWord() {
+                const wordText = manualWordInput.value.trim();
+                
+                if (!wordText) {
+                    alert('请输入单词');
+                    return;
+                }
+                
+                // 检查单词是否已存在
+                const existingWordIndex = words.findIndex(w => w.word.toLowerCase() === wordText.toLowerCase());
+                if (existingWordIndex !== -1) {
+                    alert(`单词 "${wordText}" 已存在`);
+                    manualWordInput.value = '';
+                    return;
+                }
+                
+                // 获取选中的分组
+                const selectedGroupId = manualWordGroup.value;
+                
+                // 添加新单词
+                const newWordIndex = words.length;
+                words.push({
+                    word: wordText,
+                    phonetic: "/加载中/",
+                    example: "正在从API获取例句...",
+                    chinese: "正在获取中文释义... <span class='loading'></span>",
+                    favorite: false,
+                    groupId: selectedGroupId || null
+                });
+                
+                // 保存到缓存
+                cacheWordsData();
+                
+                // 更新界面
+                filterWords();
+                updatePreviewPane();
+                
+                // 切换到新添加的单词
+                currentIndex = filteredWords.length - 1;
+                updatePreviewPane();
+                displayCurrentWord();
+                
+                // 获取单词详情
+                fetchWordDetails(wordText, newWordIndex);
+                
+                // 清空输入框
+                manualWordInput.value = '';
+                manualWordGroup.value = '';
+                
+                addDebugLog(`已手动添加单词: ${wordText}`);
+            }
+            
+            // 更新单词背景颜色
+            function updateWordBackgroundColor() {
+                currentWord.style.backgroundColor = wordBackgroundColor.value;
+                saveStyleSetting('wordBackgroundColor', wordBackgroundColor.value);
+                
+                // 计算文本颜色（基于背景色的对比度）
+                const bgColor = hexToRgb(wordBackgroundColor.value);
+                const textColor = getContrastColor(bgColor);
+                currentWord.style.color = textColor;
+                saveStyleSetting('wordTextColor', textColor);
+            }
+            
+            // 更新音标背景颜色
+            function updatePhoneticBackgroundColor() {
+                currentPhonetic.style.backgroundColor = phoneticBackgroundColor.value;
+                saveStyleSetting('phoneticBackgroundColor', phoneticBackgroundColor.value);
+                
+                // 计算文本颜色（基于背景色的对比度）
+                const bgColor = hexToRgb(phoneticBackgroundColor.value);
+                const textColor = getContrastColor(bgColor);
+                currentPhonetic.style.color = textColor;
+                saveStyleSetting('phoneticTextColor', textColor);
+            }
+            
+            // 更新中文翻译背景颜色
+            function updateChineseBackgroundColor() {
+                currentChinese.style.backgroundColor = chineseBackgroundColor.value;
+                saveStyleSetting('chineseBackgroundColor', chineseBackgroundColor.value);
+                
+                // 计算文本颜色（基于背景色的对比度）
+                const bgColor = hexToRgb(chineseBackgroundColor.value);
+                const textColor = getContrastColor(bgColor);
+                currentChinese.style.color = textColor;
+                saveStyleSetting('chineseTextColor', textColor);
+            }
+            
+            // 更新例句背景颜色
+            function updateExampleBackgroundColor() {
+                currentExample.style.backgroundColor = exampleBackgroundColor.value;
+                saveStyleSetting('exampleBackgroundColor', exampleBackgroundColor.value);
+                
+                // 计算文本颜色（基于背景色的对比度）
+                const bgColor = hexToRgb(exampleBackgroundColor.value);
+                const textColor = getContrastColor(bgColor);
+                currentExample.style.color = textColor;
+                saveStyleSetting('exampleTextColor', textColor);
+            }
+            
+            // 更新大屏背景颜色
+            function updateDisplayBackgroundColor() {
+                displayArea.style.background = displayBackgroundColor.value;
+                saveStyleSetting('displayBackgroundColor', displayBackgroundColor.value);
+                
+                // 隐藏背景图案
+                displayArea.style.backgroundImage = 'none';
+            }
+            
+            // 更新单词字体大小
+            function updateWordFontSize() {
+                const size = wordFontSize.value;
+                currentWord.style.fontSize = `${size}rem`;
+                wordFontSizeValue.textContent = `${size}rem`;
+                saveStyleSetting('wordFontSize', size);
+            }
+            
+            // 更新音标字体大小
+            function updatePhoneticFontSize() {
+                const size = phoneticFontSize.value;
+                currentPhonetic.style.fontSize = `${size}rem`;
+                phoneticFontSizeValue.textContent = `${size}rem`;
+                saveStyleSetting('phoneticFontSize', size);
+            }
+            
+            // 更新中文翻译字体大小
+            function updateChineseFontSize() {
+                const size = chineseFontSize.value;
+                currentChinese.style.fontSize = `${size}rem`;
+                chineseFontSizeValue.textContent = `${size}rem`;
+                saveStyleSetting('chineseFontSize', size);
+            }
+            
+            // 更新例句字体大小
+            function updateExampleFontSize() {
+                const size = exampleFontSize.value;
+                currentExample.style.fontSize = `${size}rem`;
+                exampleFontSizeValue.textContent = `${size}rem`;
+                saveStyleSetting('exampleFontSize', size);
+                
+                // 调整例句字体大小以适应三行显示
+                adjustExampleFontSize();
+            }
+            
+            // 调整大屏内部内容以适应高度变化
+            function adjustDisplayContent() {
+                const isFullscreen = document.fullscreenElement || 
+                                    document.webkitFullscreenElement || 
+                                    document.mozFullScreenElement || 
+                                    document.msFullscreenElement;
+                
+                const displayHeight = displayArea.clientHeight;
+                const displayWidth = displayArea.clientWidth;
+                
+                if (isFullscreen) {
+                    // 全屏模式下的字体大小调整
+                    if (displayHeight < 500) {
+                        currentWord.style.fontSize = '4rem';
+                        currentPhonetic.style.fontSize = '2rem';
+                        currentChinese.style.fontSize = '1.6rem';
+                        currentExample.style.fontSize = '1.3rem';
+                    } else if (displayHeight < 700) {
+                        currentWord.style.fontSize = '6rem';
+                        currentPhonetic.style.fontSize = '3rem';
+                        currentChinese.style.fontSize = '2.2rem';
+                        currentExample.style.fontSize = '1.8rem';
+                    } else if (displayHeight < 900) {
+                        currentWord.style.fontSize = '7rem';
+                        currentPhonetic.style.fontSize = '3.5rem';
+                        currentChinese.style.fontSize = '2.5rem';
+                        currentExample.style.fontSize = '2rem';
+                    } else {
+                        currentWord.style.fontSize = '8rem';
+                        currentPhonetic.style.fontSize = '4rem';
+                        currentChinese.style.fontSize = '3rem';
+                        currentExample.style.fontSize = '2.2rem';
+                    }
+                } else {
+                    // 非全屏模式下的字体大小调整（保持原有逻辑）
+                    if (displayHeight < 400) {
+                        currentWord.style.fontSize = '3rem';
+                        currentPhonetic.style.fontSize = '1.8rem';
+                        currentChinese.style.fontSize = '1.5rem';
+                        currentExample.style.fontSize = '1.2rem';
+                    } else if (displayHeight < 600) {
+                        currentWord.style.fontSize = '5rem';
+                        currentPhonetic.style.fontSize = '2.5rem';
+                        currentChinese.style.fontSize = '2rem';
+                        currentExample.style.fontSize = '1.6rem';
+                    } else {
+                        currentWord.style.fontSize = '7rem';
+                        currentPhonetic.style.fontSize = '3.5rem';
+                        currentChinese.style.fontSize = '2.5rem';
+                        currentExample.style.fontSize = '2rem';
+                    }
+                }
+                
+                // 其他调整逻辑保持不变...
+                const borderRadius = Math.min(displayWidth, displayHeight) * 0.02;
+                displayArea.style.borderRadius = `${borderRadius}px`;
+                
+                const elements = [currentWord, currentPhonetic, currentChinese, currentExample];
+                elements.forEach(el => {
+                    el.style.borderRadius = `${borderRadius * 0.5}px`;
+                });
+                
+                const exampleContainer = document.querySelector('.example-container');
+                exampleContainer.style.height = `${displayHeight * 0.3}px`;
+                
+                adjustExampleFontSize();
+            }
+            
+            // 调整例句字体大小以适应容器
+            function adjustExampleFontSize() {
+                const exampleElement = currentExample;
+                const exampleContainer = document.querySelector('.example-container');
+                const containerHeight = exampleContainer.clientHeight;
+                const lineHeight = parseFloat(getComputedStyle(exampleElement).lineHeight);
+                const maxLines = Math.floor(containerHeight / lineHeight) - 1; // 保留一些边距
+                
+                if (maxLines < 3) {
+                    // 如果容器高度不足以显示3行，减小字体大小
+                    const baseSize = parseFloat(getComputedStyle(exampleElement).fontSize);
+                    exampleElement.style.fontSize = `${baseSize * 0.8}px`;
+                }
+            }
+            
+            // 保存样式设置到本地存储
+            function saveStyleSetting(key, value) {
+                try {
+                    let settings = JSON.parse(localStorage.getItem('styleSettings') || '{}');
+                    settings[key] = value;
+                    localStorage.setItem('styleSettings', JSON.stringify(settings));
+                    addDebugLog(`已保存样式设置: ${key} = ${value}`);
+                } catch (error) {
+                    addDebugLog(`保存样式设置失败: ${error.message}`);
+                }
+            }
+            
+            // 从本地存储加载样式设置
+            function loadStyleSettings() {
+                try {
+                    const settings = JSON.parse(localStorage.getItem('styleSettings') || '{}');
+                    
+                    // 应用颜色设置
+                    if (settings.wordBackgroundColor) {
+                        wordBackgroundColor.value = settings.wordBackgroundColor;
+                        currentWord.style.backgroundColor = settings.wordBackgroundColor;
+                    }
+                    
+                    if (settings.phoneticBackgroundColor) {
+                        phoneticBackgroundColor.value = settings.phoneticBackgroundColor;
+                        currentPhonetic.style.backgroundColor = settings.phoneticBackgroundColor;
+                    }
+                    
+                    if (settings.chineseBackgroundColor) {
+                        chineseBackgroundColor.value = settings.chineseBackgroundColor;
+                        currentChinese.style.backgroundColor = settings.chineseBackgroundColor;
+                    }
+                    
+                    if (settings.exampleBackgroundColor) {
+                        exampleBackgroundColor.value = settings.exampleBackgroundColor;
+                        currentExample.style.backgroundColor = settings.exampleBackgroundColor;
+                    }
+                    
+                    if (settings.displayBackgroundColor) {
+                        displayBackgroundColor.value = settings.displayBackgroundColor;
+                        displayArea.style.background = settings.displayBackgroundColor;
+                        displayArea.style.backgroundImage = 'none';
+                    }
+                    
+                    // 应用文本颜色设置
+                    if (settings.wordTextColor) {
+                        currentWord.style.color = settings.wordTextColor;
+                    }
+                    
+                    if (settings.phoneticTextColor) {
+                        currentPhonetic.style.color = settings.phoneticTextColor;
+                    }
+                    
+                    if (settings.chineseTextColor) {
+                        currentChinese.style.color = settings.chineseTextColor;
+                    }
+                    
+                    if (settings.exampleTextColor) {
+                        currentExample.style.color = settings.exampleTextColor;
+                    }
+                    
+                    // 应用字体大小设置
+                    if (settings.wordFontSize) {
+                        wordFontSize.value = settings.wordFontSize;
+                        currentWord.style.fontSize = `${settings.wordFontSize}rem`;
+                        wordFontSizeValue.textContent = `${settings.wordFontSize}rem`;
+                    }
+                    
+                    if (settings.phoneticFontSize) {
+                        phoneticFontSize.value = settings.phoneticFontSize;
+                        currentPhonetic.style.fontSize = `${settings.phoneticFontSize}rem`;
+                        phoneticFontSizeValue.textContent = `${settings.phoneticFontSize}rem`;
+                    }
+                    
+                    if (settings.chineseFontSize) {
+                        chineseFontSize.value = settings.chineseFontSize;
+                        currentChinese.style.fontSize = `${settings.chineseFontSize}rem`;
+                        chineseFontSizeValue.textContent = `${settings.chineseFontSize}rem`;
+                    }
+                    
+                    if (settings.exampleFontSize) {
+                        exampleFontSize.value = settings.exampleFontSize;
+                        currentExample.style.fontSize = `${settings.exampleFontSize}rem`;
+                        exampleFontSizeValue.textContent = `${settings.exampleFontSize}rem`;
+                    }
+                    
+                    // 调整大屏内容
+                    adjustDisplayContent();
+                    
+                    addDebugLog('已加载保存的样式设置');
+                } catch (error) {
+                    addDebugLog(`加载样式设置失败: ${error.message}`);
+                }
+            }
+            
+            // 辅助函数：将十六进制颜色转换为RGB
+            function hexToRgb(hex) {
+                // 移除#号
+                hex = hex.replace('#', '');
+                
+                // 解析RGB值
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                
+                return { r, g, b };
+            }
+            
+            // 辅助函数：根据背景色获取对比度文本色（黑或白）
+            function getContrastColor(rgb) {
+                // 计算亮度
+                const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+                
+                // 如果亮度大于0.5，使用黑色文本，否则使用白色文本
+                return luminance > 0.5 ? '#000000' : '#ffffff';
+            }
+            
+            // 从本地存储加载API配置
+            function loadApiConfig() {
+                const savedAppId = localStorage.getItem('baiduAppId');
+                const savedAppKey = localStorage.getItem('baiduAppKey');
+                
+                if (savedAppId) {
+                    appIdInput.value = savedAppId;
+                }
+                
+                if (savedAppKey) {
+                    appKeyInput.value = savedAppKey;
+                }
+                
+                if (savedAppId && savedAppKey) {
+                    showApiMessage('已加载保存的API配置', 'success');
+                    addDebugLog('已从本地存储加载API配置');
+                }
+            }
+            
+            // 保存API配置到本地存储
+            function saveApiConfig() {
+                const appId = appIdInput.value.trim();
+                const appKey = appKeyInput.value.trim();
+                
+                if (!appId || !appKey) {
+                    showApiMessage('请填写APP ID和密钥', 'error');
+                    addDebugLog('保存API配置失败：APP ID或密钥为空');
+                    return;
+                }
+                
+                localStorage.setItem('baiduAppId', appId);
+                localStorage.setItem('baiduAppKey', appKey);
+                
+                showApiMessage('API配置已保存', 'success');
+                addDebugLog('API配置已保存到本地存储');
+            }
+            
+            // 测试API连接
+            async function testApiConnection() {
+                const appId = appIdInput.value.trim();
+                const appKey = appKeyInput.value.trim();
+                
+                if (!appId || !appKey) {
+                    showApiMessage('请填写APP ID和密钥', 'error');
+                    addDebugLog('测试API连接失败：APP ID或密钥为空');
+                    return;
+                }
+                
+                showApiMessage('正在测试API连接...', '');
+                setApiStatus('testing');
+                addDebugLog('开始测试API连接...');
+                
+                try {
+                    // 先尝试主API
+                    let result = await fetchBaiduTranslation('hello', appId, appKey);
+                    
+                    if (result && result !== '请先配置百度翻译API' && !result.includes('失败')) {
+                        showApiMessage('API连接成功！翻译结果: ' + result, 'success');
+                        setApiStatus('connected');
+                        addDebugLog('API连接测试成功，翻译结果: ' + result);
+                        return;
+                    }
+                    
+                    // 主API失败，尝试备用API
+                    addDebugLog('主API测试失败，尝试备用翻译服务');
+                    const fallbackResult = await fetchFallbackTranslation('hello');
+                    
+                    if (fallbackResult) {
+                        showApiMessage('主API不可用，但备用翻译服务可用: ' + fallbackResult, 'success');
+                        setApiStatus('connected-fallback');
+                        addDebugLog('备用翻译服务测试成功: ' + fallbackResult);
+                    } else {
+                        showApiMessage('所有翻译服务均不可用', 'error');
+                        setApiStatus('error');
+                        addDebugLog('所有翻译服务测试失败');
+                    }
+                } catch (error) {
+                    showApiMessage('API连接失败: ' + error.message, 'error');
+                    setApiStatus('error');
+                    addDebugLog('API连接测试异常: ' + error.message);
+                }
+            }
+            
+            // 设置API状态
+            function setApiStatus(status) {
+                switch(status) {
+                    case 'connected':
+                        apiStatusIndicator.style.backgroundColor = '#5cb85c';
+                        apiStatusText.textContent = '词典API: 已连接 (主服务)';
+                        break;
+                    case 'connected-fallback':
+                        apiStatusIndicator.style.backgroundColor = '#f0ad4e';
+                        apiStatusText.textContent = '词典API: 已连接 (备用服务)';
+                        break;
+                    case 'error':
+                        apiStatusIndicator.style.backgroundColor = '#d9534f';
+                        apiStatusText.textContent = '词典API: 连接错误';
+                        break;
+                    case 'testing':
+                        apiStatusIndicator.style.backgroundColor = '#f0ad4e';
+                        apiStatusText.textContent = '词典API: 测试中...';
+                        break;
+                    default:
+                        apiStatusIndicator.style.backgroundColor = '#5cb85c';
+                        apiStatusText.textContent = '词典API: 就绪 (主服务 + 备用服务)';
+                }
+            }
+            
+            // 显示API消息
+            function showApiMessage(message, type) {
+                apiMessage.textContent = message;
+                apiMessage.className = 'message';
+                
+                if (type) {
+                    apiMessage.classList.add(type);
+                }
+                
+                setTimeout(() => {
+                    apiMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            // 文件导入处理
+            function handleFileImport() {
+                const file = fileInput.files[0];
+                if (!file) {
+                    alert('请先选择一个txt文件');
+                    addDebugLog('文件导入失败：未选择文件');
+                    return;
+                }
+                
+                addDebugLog('开始导入文件: ' + file.name);
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    addDebugLog('文件读取成功，开始处理单词列表');
+                    processWordList(content);
+                };
+                
+                reader.onerror = function() {
+                    addDebugLog('文件读取失败');
+                    alert('文件读取失败，请重试');
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            // 处理单词列表
+            function processWordList(content) {
+                const lines = content.split('\n');
+                const newWords = [];
+                
+                const maxWords = 20;
+                let count = 0;
+                
+                // 获取选中的分组
+                const selectedGroupId = importGroupSelect.value;
+                
+                lines.forEach(line => {
+                    if (count >= maxWords) return;
+                    
+                    const trimmedLine = line.trim();
+                    if (trimmedLine) {
+                        const cachedWord = getCachedWord(trimmedLine);
+                        
+                        if (cachedWord) {
+                            // 如果单词已存在，更新分组信息
+                            const existingWordIndex = words.findIndex(w => w.word.toLowerCase() === trimmedLine.toLowerCase());
+                            if (existingWordIndex !== -1) {
+                                words[existingWordIndex].groupId = selectedGroupId || null;
+                            } else {
+                                // 从缓存加载单词，但应用新的分组
+                                const wordCopy = {...cachedWord};
+                                wordCopy.groupId = selectedGroupId || null;
+                                newWords.push(wordCopy);
+                            }
+                            addDebugLog(`从缓存加载单词: ${trimmedLine}`);
+                        } else {
+                            newWords.push({
+                                word: trimmedLine,
+                                phonetic: "/加载中/",
+                                example: "正在从API获取例句...",
+                                chinese: "正在获取中文释义... <span class='loading'></span>",
+                                favorite: false,
+                                groupId: selectedGroupId || null
+                            });
+                            
+                            fetchWordDetails(trimmedLine, words.length + newWords.length - 1);
+                        }
+                        
+                        count++;
+                    }
+                });
+                
+                if (newWords.length === 0) {
+                    alert('未能从文件中提取到有效单词');
+                    addDebugLog('文件处理失败：未提取到有效单词');
+                    return;
+                }
+                
+                // 将新单词添加到现有单词列表
+                words = [...words, ...newWords];
+                
+                cacheWordsData();
+                currentIndex = 0;
+                filterWords();
+                updatePreviewPane();
+                displayCurrentWord();
+                addDebugLog(`成功导入 ${newWords.length} 个单词`);
+            }
+            
+            // 获取单词详细信息
+            async function fetchWordDetails(word, index) {
+                try {
+                    addDebugLog(`开始获取单词 "${word}" 的详细信息`);
+                    
+                    // 获取词典信息
+                    const dictResponse = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                    if (!dictResponse.ok) {
+                        throw new Error('Word not found in Dictionary API');
+                    }
+                    
+                    const dictData = await dictResponse.json();
+                    const meanings = dictData[0].meanings;
+                    
+                    words[index].phonetic = dictData[0].phonetic || "/无音标/";
+                    
+                    // 尝试获取例句
+                    let example = "暂无例句";
+                    if (meanings.length > 0 && meanings[0].definitions.length > 0) {
+                        // 尝试从第一个释义中获取例句
+                        const definition = meanings[0].definitions[0];
+                        if (definition.example) {
+                            example = definition.example;
+                        } else {
+                            // 如果没有例句，使用释义
+                            example = definition.definition;
+                        }
+                    }
+                    
+                    words[index].example = example;
+                    
+                    addDebugLog(`单词 "${word}" 的字典信息获取成功`);
+                    
+                    // 获取翻译（带备用机制）
+                    const appId = appIdInput.value.trim();
+                    const appKey = appKeyInput.value.trim();
+                    
+                    // 先尝试百度翻译
+                    let translation = await fetchBaiduTranslation(word, appId, appKey);
+                    
+                    // 主翻译失败，尝试备用翻译
+                    if (translation.includes('翻译失败') && 
+                        (translation.includes('Failed to fetch') || 
+                         translation.includes('请求超时') ||
+                         translation.includes('跨域限制'))) {
+                        
+                        addDebugLog(`百度翻译失败，尝试备用翻译服务`);
+                        const fallbackTranslation = await fetchFallbackTranslation(word);
+                        if (fallbackTranslation) {
+                            translation = fallbackTranslation;
+                            setApiStatus('connected-fallback');
+                        }
+                    }
+                    
+                    words[index].chinese = translation;
+                    cacheWordsData();
+                    
+                    if (currentIndex === index) {
+                        displayCurrentWord();
+                    }
+                    
+                    updatePreviewPane();
+                } catch (error) {
+                    console.error(`Error fetching details for ${word}:`, error);
+                    words[index].example = "无法获取例句";
+                    addDebugLog(`单词 "${word}" 的字典信息获取失败: ${error.message}`);
+                    
+                    // 尝试备用翻译
+                    try {
+                        const fallbackTranslation = await fetchFallbackTranslation(word);
+                        words[index].chinese = fallbackTranslation || "获取翻译失败";
+                    } catch (transError) {
+                        words[index].chinese = "获取翻译失败";
+                    }
+                    
+                    cacheWordsData();
+                }
+            }
+            
+            // 百度翻译API调用
+            async function fetchBaiduTranslation(word, appId, appKey) {
+                try {
+                    if (!appId || !appKey) {
+                        addDebugLog(`翻译失败：未配置API密钥`);
+                        return "请先配置百度翻译API";
+                    }
+                    
+                    addDebugLog(`开始翻译单词 "${word}"`);
+                    
+                    // 检查MD5库
+                    if (typeof md5 === 'undefined') {
+                        addDebugLog('MD5库未加载，尝试加载备用MD5库');
+                        await loadFallbackMD5();
+                        
+                        if (typeof md5 === 'undefined') {
+                            throw new Error('MD5库加载失败，无法生成API签名');
+                        }
+                    }
+                    
+                    // 百度翻译API参数
+                    const salt = Date.now();
+                    const signString = appId + word + salt + appKey;
+                    const sign = md5(signString);
+                    
+                    // 创建请求URL
+                    const url = `https://fanyi-api.baidu.com/api/trans/vip/translate?q=${encodeURIComponent(word)}&from=en&to=zh&appid=${appId}&salt=${salt}&sign=${sign}`;
+                    addDebugLog(`构建请求URL: ${url.substring(0, 100)}...`);
+                    
+                    // 添加超时处理
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超时
+                    
+                    try {
+                        // 发送请求
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                                'Accept': 'application/json, text/plain, */*',
+                            },
+                            signal: controller.signal,
+                            mode: 'cors',
+                            cache: 'no-cache'
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            // 获取详细错误信息
+                            let errorDetails = '';
+                            try {
+                                const errorData = await response.json();
+                                errorDetails = JSON.stringify(errorData);
+                            } catch (e) {
+                                errorDetails = await response.text();
+                            }
+                            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorDetails}`);
+                        }
+                        
+                        const data = await response.json();
+                        addDebugLog(`API响应: ${JSON.stringify(data)}`);
+                        
+                        if (data.error_code) {
+                            // 处理错误代码
+                            let errorMsg = `API错误 (${data.error_code}): `;
+                            switch(data.error_code) {
+                                case 52001: errorMsg += '请求超时，请重试'; break;
+                                case 52002: errorMsg += '系统错误，请重试'; break;
+                                case 52003: errorMsg += '未授权用户，请检查APP ID和密钥'; break;
+                                case 54001: errorMsg += '签名错误'; break;
+                                case 54003: errorMsg += '访问频率受限'; break;
+                                case 54004: errorMsg += '账户余额不足'; break;
+                                default: errorMsg += data.error_msg || '未知错误';
+                            }
+                            throw new Error(errorMsg);
+                        }
+                        
+                        if (data.trans_result && data.trans_result.length > 0) {
+                            return data.trans_result[0].dst;
+                        } else {
+                            return "未找到翻译";
+                        }
+                    } catch (error) {
+                        clearTimeout(timeoutId);
+                        
+                        // 处理不同类型的错误
+                        if (error.name === 'AbortError') {
+                            throw new Error('请求超时，请检查网络连接');
+                        } else if (error.message.includes('Failed to fetch')) {
+                            // 提供具体解决方案
+                            throw new Error('网络请求失败，可能是跨域限制或网络问题。建议：1.检查网络连接 2.使用最新浏览器 3.尝试关闭浏览器扩展 4.确认API密钥正确');
+                        } else {
+                            throw error;
+                        }
+                    }
+                } catch (error) {
+                    console.error('百度翻译API错误:', error);
+                    addDebugLog(`翻译失败: "${word}" - ${error.message}`);
+                    return "翻译失败: " + error.message;
+                }
+            }
+            
+            // 备用翻译服务
+            async function fetchFallbackTranslation(word) {
+                try {
+                    addDebugLog(`尝试使用备用翻译服务翻译: ${word}`);
+                    
+                    // 使用MyMemory翻译API作为备用
+                    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh-CN`;
+                    
+                    // 添加超时处理
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 8000);
+                    
+                    try {
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                                'Accept': 'application/json, text/plain, */*',
+                            },
+                            signal: controller.signal,
+                            mode: 'cors'
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`备用API请求失败: ${response.status} ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        addDebugLog(`备用API响应: ${JSON.stringify(data)}`);
+                        
+                        if (data.responseStatus === 200 && data.responseData && data.responseData.translatedText) {
+                            return data.responseData.translatedText;
+                        } else {
+                            throw new Error(`备用翻译服务错误: ${data.responseDetails || '未知错误'}`);
+                        }
+                    } catch (error) {
+                        clearTimeout(timeoutId);
+                        if (error.name === 'AbortError') {
+                            throw new Error('备用翻译请求超时');
+                        } else {
+                            throw error;
+                        }
+                    }
+                } catch (error) {
+                    addDebugLog(`备用翻译服务失败: ${error.message}`);
+                    return null; // 表示备用服务也失败
+                }
+            }
+            
+            // 加载备用MD5库
+            function loadFallbackMD5() {
+                return new Promise((resolve, reject) => {
+                    if (typeof md5 !== 'undefined') {
+                        resolve();
+                        return;
+                    }
+                    
+                    addDebugLog('正在加载备用MD5库...');
+                    
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js';
+                    script.onload = function() {
+                        addDebugLog('备用MD5库加载成功');
+                        resolve();
+                    };
+                    script.onerror = function() {
+                        addDebugLog('备用MD5库加载失败');
+                        reject(new Error('无法加载MD5库'));
+                    };
+                    
+                    document.head.appendChild(script);
+                });
+            }
+            
+            // 更新预览窗格 - 同时更新两个预览面板
+            function updatePreviewPane() {
+                // 更新单词导入标签页的预览面板
+                previewPane.innerHTML = '';
+                
+                let previewWords = [...words];
+                
+                // 应用预览分组筛选
+                if (previewGroupFilterValue) {
+                    previewWords = previewWords.filter(word => word.groupId === previewGroupFilterValue);
+                }
+                
+                previewWords.forEach((wordData, index) => {
+                    const wordChip = createWordChip(wordData, index, 'preview');
+                    previewPane.appendChild(wordChip);
+                });
+                
+                // 更新播放控制标签页的预览面板
+                previewPanePlayback.innerHTML = '';
+                
+                filteredWords.forEach((wordData, index) => {
+                    const wordChip = createWordChip(wordData, index, 'playback');
+                    previewPanePlayback.appendChild(wordChip);
+                });
+            }
+            
+            // 创建单词芯片元素
+            function createWordChip(wordData, index, type) {
+                const wordChip = document.createElement('div');
+                wordChip.className = 'word-chip';
+                
+                // 只有在播放控制标签页才显示当前激活状态
+                if (type === 'playback' && index === currentIndex) {
+                    wordChip.classList.add('active');
+                }
+                
+                if (wordData.favorite) {
+                    wordChip.classList.add('favorite');
+                }
+                
+                // 添加单词文本
+                const wordText = document.createTextNode(wordData.word);
+                wordChip.appendChild(wordText);
+                
+                // 添加删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-word-btn';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.title = '删除单词';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 防止触发单词点击事件
+                    deleteWord(wordData.word);
+                });
+                wordChip.appendChild(deleteBtn);
+                
+                // 如果有分组，添加分组指示器
+                if (wordData.groupId) {
+                    const group = groups.find(g => g.id === wordData.groupId);
+                    if (group) {
+                        const groupIndicator = document.createElement('span');
+                        groupIndicator.className = 'group-indicator';
+                        groupIndicator.style.backgroundColor = group.color;
+                        groupIndicator.style.color = getContrastColor(hexToRgb(group.color));
+                        groupIndicator.textContent = group.name.charAt(0);
+                        groupIndicator.title = group.name;
+                        wordChip.appendChild(groupIndicator);
+                    }
+                }
+                
+                wordChip.addEventListener('click', () => {
+                    if (type === 'preview') {
+                        // 在预览中点击单词，切换到播放控制标签页并显示该单词
+                        const playbackIndex = filteredWords.findIndex(w => w.word === wordData.word);
+                        if (playbackIndex !== -1) {
+                            currentIndex = playbackIndex;
+                            updatePreviewPane();
+                            displayCurrentWord();
+                            
+                            // 切换到播放控制标签页
+                            document.querySelector('[data-tab="playback"]').click();
+                        }
+                    } else {
+                        // 在播放控制标签页点击单词
+                        currentIndex = index;
+                        updatePreviewPane();
+                        displayCurrentWord();
+                    }
+                });
+                
+                return wordChip;
+            }
+            
+            // 显示当前单词
+            function displayCurrentWord() {
+                if (filteredWords.length === 0) return;
+                
+                const currentWordData = filteredWords[currentIndex];
+                currentWord.textContent = currentWordData.word;
+                currentPhonetic.textContent = currentWordData.phonetic;
+                currentChinese.innerHTML = currentWordData.chinese;
+                currentExample.textContent = currentWordData.example;
+                
+                // 更新分组选择器
+                wordGroupSelect.value = currentWordData.groupId || '';
+                
+                // 应用样式设置
+                currentWord.style.backgroundColor = wordBackgroundColor.value;
+                currentPhonetic.style.backgroundColor = phoneticBackgroundColor.value;
+                currentChinese.style.backgroundColor = chineseBackgroundColor.value;
+                currentExample.style.backgroundColor = exampleBackgroundColor.value;
+                
+                // 调整例句字体大小以适应三行显示
+                adjustExampleFontSize();
+                
+                // 更新收藏按钮状态
+                if (currentWordData.favorite) {
+                    favoriteBadge.classList.add('active');
+                } else {
+                    favoriteBadge.classList.remove('active');
+                }
+                
+                addDebugLog(`显示单词: ${currentWordData.word}`);
+                
+                // 朗读单词
+                speakWord(currentWordData.word);
+            }
+            
+            // 朗读单词
+            function speakWord(word) {
+                if (speechSynth.speaking) {
+                    speechSynth.cancel();
+                }
+                
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = voiceLanguage.value;
+                utterance.rate = parseFloat(voiceSpeed.value);
+                utterance.pitch = parseFloat(voicePitch.value);
+                speechSynth.speak(utterance);
+                
+                addDebugLog(`朗读单词: ${word} (语言: ${voiceLanguage.value})`);
+            }
+            
+            // 更新间隔时间显示
+            function updateIntervalValue() {
+                intervalValue.textContent = `${intervalTime.value} ms`;
+            }
+            
+            // 更新语速显示
+            function updateVoiceSpeedValue() {
+                voiceSpeedValue.textContent = voiceSpeed.value;
+            }
+            
+            // 更新音调显示
+            function updateVoicePitchValue() {
+                voicePitchValue.textContent = voicePitch.value;
+            }
+            
+            // 上一个单词
+            function goToPreviousWord() {
+                if (filteredWords.length === 0) return;
+                
+                currentIndex = (currentIndex - 1 + filteredWords.length) % filteredWords.length;
+                updatePreviewPane();
+                displayCurrentWord();
+            }
+            
+            // 下一个单词
+            function goToNextWord() {
+                if (filteredWords.length === 0) return;
+                
+                currentIndex = (currentIndex + 1) % filteredWords.length;
+                updatePreviewPane();
+                displayCurrentWord();
+            }
+            
+            // 开始自动播放
+            function startAutoPlay() {
+                if (filteredWords.length === 0) return;
+                if (isPlaying) return;
+                
+                isPlaying = true;
+                let repetitionCount = 0;
+                const maxRepetition = parseInt(repeatCount.value);
+                const interval = parseInt(intervalTime.value);
+                
+                addDebugLog(`开始自动播放: 重复${maxRepetition}次, 间隔${interval}ms`);
+                
+                progressBar.style.width = '0%';
+                
+                // 先立即读一次
+                speakWord(filteredWords[currentIndex].word);
+                repetitionCount++;
+                
+                // 设置定时器
+                playInterval = setInterval(() => {
+                    if (repetitionCount < maxRepetition) {
+                        speakWord(filteredWords[currentIndex].word);
+                        repetitionCount++;
+                        const progress = (repetitionCount / maxRepetition) * 100;
+                        progressBar.style.width = `${progress}%`;
+                    } else {
+                        currentIndex = (currentIndex + 1) % filteredWords.length;
+                        repetitionCount = 0;
+                        updatePreviewPane();
+                        displayCurrentWord();
+                        progressBar.style.width = '0%';
+                    }
+                }, interval);
+            }
+            
+            // 暂停自动播放
+            function pauseAutoPlay() {
+                if (!isPlaying) return;
+                
+                isPlaying = false;
+                clearInterval(playInterval);
+                
+                addDebugLog('暂停自动播放');
+                
+                if (speechSynth.speaking) {
+                    speechSynth.cancel();
+                }
+            }
+            
+            // 切换单词收藏状态
+            function toggleFavorite() {
+                if (filteredWords.length === 0) return;
+                
+                const currentWordData = filteredWords[currentIndex];
+                currentWordData.favorite = !currentWordData.favorite;
+                
+                const originalIndex = words.findIndex(w => w.word === currentWordData.word);
+                if (originalIndex !== -1) {
+                    words[originalIndex].favorite = currentWordData.favorite;
+                }
+                
+                cacheWordsData();
+                
+                if (currentWordData.favorite) {
+                    favoriteBadge.classList.add('active');
+                    addDebugLog(`已收藏单词: ${currentWordData.word}`);
+                } else {
+                    favoriteBadge.classList.remove('active');
+                    addDebugLog(`已取消收藏单词: ${currentWordData.word}`);
+                }
+                
+                if (showOnlyFavorites && !currentWordData.favorite) {
+                    goToNextWord();
+                }
+                
+                updatePreviewPane();
+            }
+            
+            // 设置筛选状态
+            function setFilter(showFavorites) {
+                showOnlyFavorites = showFavorites;
+                
+                if (showFavorites) {
+                    allWordsBtn.classList.remove('active');
+                    favoriteWordsBtn.classList.add('active');
+                } else {
+                    allWordsBtn.classList.add('active');
+                    favoriteWordsBtn.classList.remove('active');
+                }
+                
+                filterWords();
+                currentIndex = 0;
+                updatePreviewPane();
+                displayCurrentWord();
+                
+                addDebugLog(`已切换到${showFavorites ? '仅显示收藏' : '显示所有'}单词模式`);
+            }
+            
+            // 按分组筛选单词
+            function filterByGroup(groupId) {
+                currentGroupFilter = groupId;
+                
+                // 更新按钮状态
+                const groupButtons = document.querySelectorAll('.group-item');
+                groupButtons.forEach(btn => {
+                    if (btn.dataset.groupId === groupId) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                
+                if (groupId === null) {
+                    allGroupsBtn.classList.add('active');
+                } else {
+                    allGroupsBtn.classList.remove('active');
+                }
+                
+                filterWords();
+                currentIndex = 0;
+                updatePreviewPane();
+                displayCurrentWord();
+                
+                addDebugLog(`已切换到${groupId ? '分组筛选: ' + groups.find(g => g.id === groupId)?.name : '所有分组'}模式`);
+            }
+            
+            // 更新预览筛选
+            function updatePreviewFilter() {
+                previewGroupFilterValue = previewGroupFilter.value || null;
+                updatePreviewPane();
+                
+                addDebugLog(`预览分组筛选已更新: ${previewGroupFilterValue ? groups.find(g => g.id === previewGroupFilterValue)?.name : '所有分组'}`);
+            }
+            
+            // 同步预览到播放列表
+            function syncPreviewToPlayback() {
+                let wordsToSync = [...words];
+                
+                // 应用预览分组筛选
+                if (previewGroupFilterValue) {
+                    wordsToSync = wordsToSync.filter(word => word.groupId === previewGroupFilterValue);
+                }
+                
+                // 设置播放列表为当前预览的单词
+                filteredWords = wordsToSync;
+                currentIndex = 0;
+                
+                updatePreviewPane();
+                displayCurrentWord();
+                
+                addDebugLog(`已将预览单词列表同步到播放列表，共${filteredWords.length}个单词`);
+            }
+            
+            // 筛选单词列表
+            function filterWords() {
+                let result = [...words];
+                
+                // 应用分组筛选
+                if (currentGroupFilter !== null) {
+                    result = result.filter(word => word.groupId === currentGroupFilter);
+                }
+                
+                // 应用收藏筛选
+                if (showOnlyFavorites) {
+                    result = result.filter(word => word.favorite);
+                }
+                
+                filteredWords = result;
+                
+                if (filteredWords.length === 0) {
+                    previewPanePlayback.innerHTML = '<div class="word-chip">暂无符合条件的单词</div>';
+                }
+            }
+            
+            // 导出单词列表
+            function exportWordList() {
+                if (words.length === 0) {
+                    alert('没有可导出的单词');
+                    return;
+                }
+                
+                const exportData = words.map(word => {
+                    const group = groups.find(g => g.id === word.groupId);
+                    return {
+                        单词: word.word,
+                        音标: word.phonetic,
+                        例句: word.example,
+                        中文释义: word.chinese.replace(/<[^>]*>?/gm, ''),
+                        分组: group ? group.name : '未分组',
+                        收藏状态: word.favorite ? '是' : '否'
+                    };
+                });
+                
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "单词列表");
+                
+                const date = new Date();
+                const fileName = `单词列表_${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}.xlsx`;
+                
+                XLSX.writeFile(wb, fileName);
+                addDebugLog(`已导出单词列表到Excel: ${fileName}`);
+            }
+            
+            // 缓存单词数据
+            function cacheWordsData() {
+                try {
+                    localStorage.setItem('cachedWords', JSON.stringify(words));
+                    addDebugLog(`已缓存 ${words.length} 个单词数据`);
+                } catch (error) {
+                    addDebugLog(`缓存单词数据失败: ${error.message}`);
+                }
+            }
+            
+            // 从缓存加载单词
+            function loadCachedWords() {
+                try {
+                    const cachedData = localStorage.getItem('cachedWords');
+                    if (cachedData) {
+                        words = JSON.parse(cachedData);
+                        // 确保新添加的属性存在
+                        words.forEach(word => {
+                            if (word.groupId === undefined) word.groupId = null;
+                        });
+                        addDebugLog(`已从缓存加载 ${words.length} 个单词数据`);
+                    }
+                } catch (error) {
+                    addDebugLog(`加载缓存单词数据失败: ${error.message}`);
+                    words = [];
+                }
+            }
+            
+            // 从缓存获取单个单词
+            function getCachedWord(word) {
+                return words.find(w => w.word.toLowerCase() === word.toLowerCase()) || null;
+            }
+            
+            // 分组管理功能
+            
+            // 生成唯一ID
+            function generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            }
+            
+            // 创建新分组
+            function createNewGroup() {
+                const groupName = newGroupName.value.trim();
+                if (!groupName) {
+                    alert('请输入分组名称');
+                    return;
+                }
+                
+                // 检查分组名称是否已存在
+                if (groups.some(g => g.name.toLowerCase() === groupName.toLowerCase())) {
+                    alert('该分组名称已存在');
+                    return;
+                }
+                
+                const newGroup = {
+                    id: generateId(),
+                    name: groupName,
+                    color: newGroupColor.value
+                };
+                
+                groups.push(newGroup);
+                cacheGroupsData();
+                updateGroupUI();
+                
+                newGroupName.value = '';
+                newGroupColor.value = '#4a90e2';
+                
+                addDebugLog(`已创建新分组: ${groupName}`);
+            }
+            
+            // 更新分组UI
+            function updateGroupUI() {
+                // 更新分组列表
+                groupList.innerHTML = '';
+                
+                groups.forEach(group => {
+                    const groupItem = document.createElement('div');
+                    groupItem.className = 'group-item';
+                    groupItem.dataset.groupId = group.id;
+                    groupItem.innerHTML = `
+                        <span class="group-color" style="background-color: ${group.color};"></span>
+                        ${group.name}
+                    `;
+                    
+                    groupItem.addEventListener('click', () => filterByGroup(group.id));
+                    groupList.appendChild(groupItem);
+                });
+                
+                // 更新所有分组选择器
+                const groupSelectors = [
+                    wordGroupSelect,
+                    manualWordGroup,
+                    importGroupSelect,
+                    previewGroupFilter
+                ];
+                
+                groupSelectors.forEach(selector => {
+                    // 保存当前选中的值
+                    const currentValue = selector.value;
+                    
+                    // 清空选项（保留第一个选项）
+                    while (selector.options.length > 1) {
+                        selector.remove(1);
+                    }
+                    
+                    // 添加分组选项
+                    groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.name;
+                        selector.appendChild(option);
+                    });
+                    
+                    // 恢复选中的值（如果仍然存在）
+                    if (currentValue && selector.querySelector(`option[value="${currentValue}"]`)) {
+                        selector.value = currentValue;
+                    }
+                });
+            }
+            
+            // 打开分组编辑模态框
+            function openGroupEditModal() {
+                editGroupList.innerHTML = '';
+                
+                groups.forEach(group => {
+                    const groupEditItem = document.createElement('div');
+                    groupEditItem.className = 'input-group';
+                    groupEditItem.innerHTML = `
+                        <label>分组名称</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" class="edit-group-name" data-group-id="${group.id}" value="${group.name}">
+                            <input type="color" class="edit-group-color" data-group-id="${group.id}" value="${group.color}">
+                            <span class="delete-group" data-group-id="${group.id}"><i class="fas fa-trash"></i></span>
+                        </div>
+                    `;
+                    editGroupList.appendChild(groupEditItem);
+                });
+                
+                // 添加删除事件监听
+                document.querySelectorAll('.delete-group').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const groupId = this.dataset.groupId;
+                        if (confirm('确定要删除这个分组吗？分组中的单词将变为未分组状态。')) {
+                            // 从分组列表中移除
+                            groups = groups.filter(g => g.id !== groupId);
+                            
+                            // 更新单词的分组信息
+                            words.forEach(word => {
+                                if (word.groupId === groupId) {
+                                    word.groupId = null;
+                                }
+                            });
+                            
+                            cacheWordsData();
+                            cacheGroupsData();
+                            openGroupEditModal(); // 重新加载编辑界面
+                            
+                            addDebugLog(`已删除分组: ${groupId}`);
+                        }
+                    });
+                });
+                
+                groupModal.style.display = 'flex';
+            }
+            
+            // 关闭分组编辑模态框
+            function closeGroupEditModal() {
+                groupModal.style.display = 'none';
+            }
+            
+            // 保存分组编辑更改
+            function saveGroupEditChanges() {
+                const nameInputs = document.querySelectorAll('.edit-group-name');
+                const colorInputs = document.querySelectorAll('.edit-group-color');
+                
+                nameInputs.forEach(input => {
+                    const groupId = input.dataset.groupId;
+                    const group = groups.find(g => g.id === groupId);
+                    if (group) {
+                        const oldName = group.name;
+                        group.name = input.value.trim() || oldName; // 确保名称不为空
+                        if (group.name !== oldName) {
+                            addDebugLog(`已更新分组名称: ${oldName} -> ${group.name}`);
+                        }
+                    }
+                });
+                
+                colorInputs.forEach(input => {
+                    const groupId = input.dataset.groupId;
+                    const group = groups.find(g => g.id === groupId);
+                    if (group && group.color !== input.value) {
+                        group.color = input.value;
+                        addDebugLog(`已更新分组颜色: ${groupId}`);
+                    }
+                });
+                
+                cacheGroupsData();
+                updateGroupUI();
+                updatePreviewPane();
+                closeGroupEditModal();
+                
+                addDebugLog('已保存分组编辑更改');
+            }
+            
+            // 为当前单词分配分组
+            function assignWordToGroup() {
+                if (filteredWords.length === 0) return;
+                
+                const currentWordData = filteredWords[currentIndex];
+                const newGroupId = wordGroupSelect.value;
+                
+                // 在原始单词列表中更新
+                const originalIndex = words.findIndex(w => w.word === currentWordData.word);
+                if (originalIndex !== -1) {
+                    words[originalIndex].groupId = newGroupId || null;
+                    currentWordData.groupId = newGroupId || null;
+                    
+                    cacheWordsData();
+                    updatePreviewPane();
+                    
+                    const group = groups.find(g => g.id === newGroupId);
+                    addDebugLog(`单词 "${currentWordData.word}" 已${group ? '分配到分组: ' + group.name : '取消分组'}`);
+                }
+            }
+            
+            // 缓存分组数据
+            function cacheGroupsData() {
+                try {
+                    localStorage.setItem('cachedGroups', JSON.stringify(groups));
+                    addDebugLog(`已缓存 ${groups.length} 个分组数据`);
+                } catch (error) {
+                    addDebugLog(`缓存分组数据失败: ${error.message}`);
+                }
+            }
+            
+            // 从缓存加载分组
+            function loadCachedGroups() {
+                try {
+                    const cachedData = localStorage.getItem('cachedGroups');
+                    if (cachedData) {
+                        groups = JSON.parse(cachedData);
+                        addDebugLog(`已从缓存加载 ${groups.length} 个分组数据`);
+                    }
+                } catch (error) {
+                    addDebugLog(`加载缓存分组数据失败: ${error.message}`);
+                    groups = [];
+                }
+            }
+            
+            // 点击模态框外部关闭
+            window.addEventListener('click', function(event) {
+                if (event.target === groupModal) {
+                    closeGroupEditModal();
+                }
+            });
+        });
+    </script>
+</body>
 </html>
